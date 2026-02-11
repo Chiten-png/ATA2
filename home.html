@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Home - A-T-A</title>
+    <style>
+        .shortcut-card.active-press { transform: scale(0.95) !important; background-color: var(--accent) !important; transition: 0.1s !important; }
+        :root { --bg-main: #d0eafe; --card-bg: #ffffff; --text-main: #333333; --text-sub: #7f8c8d; --accent: #2c3e50; --border: #dfe1e5; --shadow: rgba(0,0,0,0.05); --hr-color: #eee; }
+        [data-theme="dark"] { --bg-main: #033355; --card-bg: #1e1e1e; --text-main: #e0e0e0; --text-sub: #a0a0a0; --accent: #3498db; --border: #333333; --shadow: rgba(0,0,0,0.3); --hr-color: #333; }
+        body { margin: 0; padding: 40px; font-family: 'Segoe UI', sans-serif; background-color: var(--bg-main); color: var(--text-main); display:flex; flex-direction: column; align-items: center; transition: background-color 0.3s, color 0.3s; }
+        .clock-container { text-align: center; margin-bottom: 30px; }
+        #clock { font-size: 4rem; font-weight: bold; margin: 0; color: var(--accent); }
+        #date { font-size: 1.2rem; color: var(--text-sub); }
+        .search-box { margin: 20px 0; width: 100%; max-width: 500px; }
+        .search-box form { display: flex; background: var(--card-bg); border: 1px solid var(--border); border-radius: 24px; padding: 2px 15px; box-shadow: 0 1px 6px var(--shadow); transition: 0.3s; }
+        .search-box input[type="text"] { flex-grow: 1; border: none; outline: none; padding: 12px; font-size: 16px; background: transparent; color: var(--text-main); }
+        .search-box button { background: none; border: none; cursor: pointer; font-size: 18px; }
+        hr { width: 80%; max-width: 600px; border: none; border-top: 1px solid var(--hr-color); margin: 30px 0; }
+        .link-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px; width: 100%; max-width: 800px; }
+        .shortcut-card { display: flex; flex-direction: column; align-items: center; padding: 20px; background: var(--card-bg); border-radius: 15px; text-decoration: none; color: var(--text-main); box-shadow: 0 4px 6px var(--shadow); transition: all 0.2s ease; position: relative; }
+        .shortcut-card img { width: 50px; height: 50px; object-fit: contain; margin-bottom: 12px; }
+        .shortcut-card span { font-size: 0.9rem; font-weight: 500; }
+        .theme-toggle { position: fixed; top: 20px; right: 20px; background: var(--card-bg); border: 1px solid var(--border); color: var(--text-main); padding: 10px; border-radius: 50%; cursor: pointer; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; }
+        .memo-area { width: 100%; max-width: 800px; margin-top: 20px; }
+        #quick-memo { width: 100%; height: 120px; padding: 15px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 12px; background-color: var(--card-bg); color: var(--text-main); font-family: 'Consolas', monospace; font-size: 0.95rem; resize: vertical; outline: none; }
+        .side-panel { position: fixed; top: 0; right: -400px; width: 380px; height: 100vh; background: var(--card-bg); box-shadow: -5px 0 15px var(--shadow); border-left: 2px solid var(--accent); transition: right 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); z-index: 1000; padding: 20px; display: flex; flex-direction: column; box-sizing: border-box; }
+        .side-panel.open { right: 0; }
+        #ai-chat-area { flex: 1; overflow-y: auto; margin-bottom: 20px; padding-right: 5px; }
+    </style>
+</head>
+<body>
+
+    <button class="theme-toggle" onclick="toggleTheme()" title="モード切替">🌓</button>
+
+    <div class="clock-container">
+        <div id="clock">00:00:00</div>
+        <div id="date">YYYY/MM/DD</div>
+        <div id="weather-box" style="margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 25px;">
+            <div id="current-weather" style="display: flex; align-items: center; gap: 8px;">
+                <span id="w-icon" style="font-size: 1.4rem;"></span> 
+                <span id="w-temp" style="font-size: 1.2rem; font-weight: bold;">--</span>
+                <span style="font-size: 0.9rem; margin-left: -5px;">°C</span>
+            </div>
+            <div style="width: 1px; height: 20px; background-color: var(--hr-color);"></div>
+            <div id="forecast-container" style="display: flex; align-items: center; gap: 8px;"></div>
+        </div>
+    </div>
+
+    <div class="search-box">
+        <div style="display: flex; gap: 15px; margin-bottom: 8px; font-size: 0.85rem; color: var(--text-sub);">
+            <label style="cursor: pointer;"><input type="radio" name="engine" value="google" checked> Google</label>
+            <label style="cursor: pointer;"><input type="radio" name="engine" value="youtube"> YouTube</label>
+        </div>
+        <form id="search-form" method="get" target="_blank">
+            <input type="text" id="search-input" name="q" placeholder="Google で検索..." autocomplete="off">
+            <button type="submit">🔍</button>
+        </form>
+    </div>
+
+    <hr>
+
+    <div class="link-grid">
+        <a href="https://www.google.com" target="_blank" class="shortcut-card">
+            <img src="https://www.google.com/s2/favicons?domain=google.com&sz=128" alt="Google"><span>Google</span>
+        </a>
+        <a href="https://www.youtube.com" target="_blank" class="shortcut-card">
+            <img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=128" alt="YouTube"><span>YouTube</span>
+        </a>
+        <a href="https://donderhiroba.jp/" target="_blank" class="shortcut-card">
+            <img src="https://www.google.com/s2/favicons?domain=donderhiroba.jp/&sz=128" alt="donderhiroba"><span>ドンだーひろば</span>
+        </a>
+        <a href="https://vscode.dev" target="_blank" class="shortcut-card">
+            <img src="https://www.google.com/s2/favicons?domain=vscode.dev&sz=128" alt="vscode"><span>vscode</span>
+        </a>
+        <a href="https://gemini.google.com/app?hl=ja" target="_blank" class="shortcut-card">
+            <img src="https://www.google.com/s2/favicons?domain=gemini.google.com&sz=128" alt="gemini"><span>gemini</span>
+        </a>
+    </div>
+
+    <hr>
+
+    <div id="gemini-panel" class="side-panel">
+        <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--hr-color); margin-bottom:15px;">
+            <div id="ai-status-mini" style="position: absolute; top: 10px; right: 15px; text-align: right; font-family: 'Courier New', monospace; font-size: 10px; color: #00ff00; pointer-events: none; opacity: 0.8;">
+                <div>RPM <span id="rpm-num">0</span></div>
+                <div style="width: 40px; height: 3px; background: #222; margin: 2px 0 5px auto;">
+                    <div id="rpm-mini-bar" style="width: 0%; height: 100%; background: #00ff00; transition: width 0.3s;"></div>
+                </div>
+                
+            </div>            
+            <h3>✨ A-T-A Intelligence</h3>
+            <button onclick="toggleGeminiPanel()" style="background:none; border:none; color:var(--text-sub); cursor:pointer; font-size:1.2rem;">✕</button>
+        </div>
+        <div id="ai-chat-area">
+            <p>Ctrl + Alt + G で呼び出せます。</p>
+            <p style="color:var(--text-sub);">Connected to Gemini API.</p>
+        </div>
+        <div class="panel-footer" style="margin-top:auto; padding-bottom:10px;">
+            <input type="text" id="panel-ai-input" placeholder="Geminiに命令..." style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg-main); color:var(--text-main); box-sizing:border-box; outline:none;">
+        </div>
+    </div>
+
+    <div class="memo-area">
+        <h3>📝 クイックメモ</h3>
+        <textarea id="quick-memo" placeholder="メモをここに..."></textarea>
+    </div>
+
+    <script>
+        // --- 1. 検索エンジン ---
+        const searchForm = document.getElementById('search-form');
+        const searchInput = document.getElementById('search-input');
+        const engines = document.getElementsByName('engine');
+        searchForm.onsubmit = () => {
+            const selected = Array.from(engines).find(r => r.checked).value;
+            searchForm.action = selected === 'youtube' ? "https://www.youtube.com/results" : "https://www.google.com/search";
+            searchInput.name = selected === 'youtube' ? "search_query" : "q";
+        };
+
+        // --- 2. 時計・テーマ・メモ ---
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toTimeString().split(' ')[0];
+            const days = ['日','月','火','水','木','金','土'];
+            document.getElementById('date').textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 (${days[now.getDay()]})`;
+        }
+        setInterval(updateTime, 1000); updateTime();
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const newTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            window.dispatchEvent(new Event('storage'));
+        }
+        if (localStorage.getItem('theme')) document.documentElement.setAttribute('data-theme', localStorage.getItem('theme'));
+
+        const memoArea = document.getElementById('quick-memo');
+        memoArea.value = localStorage.getItem('my_portal_memo') || "";
+        memoArea.addEventListener('input', () => localStorage.setItem('my_portal_memo', memoArea.value));
+
+        
+        // --- 5. 天気API ---
+        const WEATHER_API_KEY = '7a1c4bfe7aa80c9fd40b208762a28b46';
+        const CITY = 'Hamamatsu,jp';
+        const iconMap = {"01":"☀️","02":"⛅","03":"☁️","04":"☁️","09":"🌧️","10":"🌦️","11":"🌩️","13":"❄️","50":"🌫️"};
+        async function updateWeather() {
+            try {
+                const [resCur, resFor] = await Promise.all([
+                    fetch(`https://api.openweathermap.org/data/2.5/weather?q=${CITY}&appid=${WEATHER_API_KEY}&lang=ja&units=metric`),
+                    fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${CITY}&appid=${WEATHER_API_KEY}&lang=ja&units=metric`)
+                ]);
+                const dataCur = await resCur.json();
+                const dataFor = await resFor.json();
+                document.getElementById('w-temp').textContent = Math.round(dataCur.main.temp);
+                document.getElementById('w-icon').textContent = iconMap[dataCur.weather[0].icon.substring(0,2)] || "🌡️";
+                const f = dataFor.list[1]; 
+                document.getElementById('forecast-container').innerHTML = `<span style="font-size: 0.8rem; color: var(--text-sub);">3h後:</span><span style="font-size: 1.4rem;">${iconMap[f.weather[0].icon.substring(0,2)]}</span><span style="font-size: 1.2rem; font-weight: bold;">${Math.round(f.main.temp)}°</span>`;
+            } catch (err) { console.error("Weather Error", err); }
+        }
+        updateWeather(); setInterval(updateWeather, 10800000);
+        // A-T-A System Optimized.
+    </script>
+</body>
+</html>

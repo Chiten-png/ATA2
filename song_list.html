@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <style>
+    /* --- 1. 定数（home.htmlと完全一致） --- */
+    :root {
+        --bg-main: #f8f9fa;
+        --card-bg: #ffffff;
+        --text-main: #333333;
+        --text-sub: #7f8c8d;
+        --accent: #2c3e50;
+        --border: #dfe1e5;
+        --header-bg: #f2f2f2;
+        --header-hover: #e0e0e0;
+    }
+    [data-theme="dark"] {
+        --bg-main: #121212;
+        --card-bg: #1e1e1e;
+        --text-main: #e0e0e0;
+        --text-sub: #a0a0a0;
+        --accent: #3498db;
+        --border: #333333;
+        --header-bg: #2d2d2d;
+        --header-hover: #3d3d3d;
+    }
+
+    /* --- 2. 全体レイアウト --- */
+    body { 
+        font-family: 'Segoe UI', sans-serif; 
+        background-color: var(--bg-main); 
+        color: var(--text-main); 
+        margin: 0; 
+        padding: 0; 
+        overflow: hidden; 
+        transition: background-color 0.3s, color 0.3s;
+    }
+    
+    .header {
+        position: sticky; 
+        top: 0; 
+        background: var(--bg-main);
+        padding: 10px; 
+        border-bottom: 3px solid var(--accent);
+        display: flex; 
+        flex-direction: column; 
+        gap: 8px;
+        z-index: 10;
+    }
+
+    .search-row { display: flex; gap: 10px; align-items: center; }
+
+    /* 入力フォーム */
+    input { 
+        flex-grow: 1; 
+        padding: 10px; 
+        border-radius: 5px; 
+        border: 1px solid var(--border); 
+        background: var(--card-bg); 
+        color: var(--text-main); 
+        outline: none;
+    }
+    input:focus { border-color: var(--accent); }
+    
+    /* --- 3. テーブル --- */
+    .table-container { height: calc(100vh - 80px); overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+
+    /* テーブルヘッダー */
+    th { 
+        position: sticky; 
+        top: 0; 
+        background: var(--header-bg); 
+        padding: 12px 10px; 
+        cursor: pointer; 
+        font-size: 0.8rem; 
+        z-index: 5; 
+        color: var(--text-sub); 
+        transition: 0.2s; 
+        border-bottom: 1px solid var(--border);
+        user-select: none;
+    }
+    th:hover { background: var(--header-hover); }
+    th::after { content: ' ↕'; opacity: 0.3; }
+    th.asc::after { content: ' ▲'; opacity: 1; color: var(--accent); }
+    th.desc::after { content: ' ▼'; opacity: 1; color: var(--accent); }
+    
+    /* 各セル */
+    td { 
+        padding: 12px 10px; 
+        border-bottom: 1px solid var(--border); 
+        font-size: 0.85rem; 
+        overflow: hidden; 
+        text-overflow: ellipsis; 
+        white-space: nowrap; 
+    }
+    
+    /* 列の幅調整 */
+    .col-stars { width: 35px; text-align: center; }
+    .col-zenryo { width: 70px; text-align: center; font-weight: bold; }
+    .col-name { width: auto; font-weight: bold; cursor: pointer; }
+    .col-notes { width: 55px; text-align: right; font-size: 0.75rem; color: var(--text-sub); }
+tr {
+    content-visibility: auto;
+    contain-intrinsic-size: 40px; /* 行の概ねの高さ */
+}
+    /* 行ホバー */
+    tr:hover { background: rgba(52, 152, 219, 0.1); }
+
+      
+
+    /* --- 通常モード（ライトモード）の黄色 --- */
+.fc-style { 
+    background-color: #fff9c4 !important; /* 明るいパステルイエロー */
+    color: #333 !important; 
+}
+
+/* --- ダークモード時の黄色を「しっとり」させる --- */
+[data-theme="dark"] .fc-style { 
+    /* 深みのある真鍮（ブラス）のような色に */
+    background-color: #433f16 !important; 
+    /* 文字は少し暗めの白にしてコントラストを抑える */
+    color: #e0e0e0 !important;
+    /* 枠線をつけて「埋もれすぎない」ようにするのもアリ */
+    border-left: 5px solid #f1c40f; 
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div class="search-row">
+        <input type="text" id="searchInput" placeholder="曲名・難易度で検索..." oninput="filterData()">
+        <span id="counter" style="font-size: 0.8rem;"></span>
+    </div>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th class="col-stars" onclick="sortData('stars')">★</th>
+                <th class="col-zenryo" onclick="sortData('zenryo')">全良難易度</th>
+                <th class="col-name" onclick="sortData('name')">曲名</th>
+                <th class="col-notes" onclick="sortData('notes')">Notes</th>
+            </tr>
+        </thead>
+        <tbody id="songBody"></tbody>
+    </table>
+</div>
+<script src="master_songs.js"></script>
+
+<script>
+    let songs = master_songs_data; 
+
+
+    // 全良難易度の重み
+    const zenryoOrder = {
+        "SS":1, "地力S+":2, "個人差S+":3, "地力S":4, "個人差S":5,
+        "地力A+":6, "個人差A+":7, "地力A":8, "個人差A":9,
+        "地力B":10, "個人差B":11, "地力C":12, "個人差C":13,
+        "地力D":14, "個人差D":15, "地力E":16, "個人差E":17,
+        "地力F":18, "未定":98, "":99
+    };
+
+    
+function selectSong(name, stars, notes, zenryo) {
+    window.parent.postMessage({
+        type: 'SET_SONG',
+        name: name,
+        stars: stars,
+        notes: notes,
+        zenryo: zenryo
+    }, '*');
+}
+
+// 検索・絞り込みを実行する関数
+function filterData() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    
+    // 全データ（songs）から、入力文字が含まれる曲だけを抽出
+    const filtered = songs.filter(s => {
+        return s.name.toLowerCase().includes(query) || 
+               (s.zenryo && s.zenryo.toLowerCase().includes(query));
+    });
+
+    // 抽出した結果だけで表を再描画
+    renderTable(filtered);
+}
+// --- 起動時の処理 ---
+window.onload = function() {
+    // 1. 最初に表を表示
+    renderTable(songs);
+
+    // 2. 検索窓のイベント登録
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', filterData);
+    }
+
+    // 3. テーマ（ダークモード）の初期適用
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+};
+// --- テーマ変更のリアルタイム監視 ---
+window.addEventListener('storage', (e) => {
+    if (e.key === 'theme') {
+        const newTheme = e.newValue || 'light';
+        document.documentElement.setAttribute('data-theme', newTheme);
+    }
+});
+
+function renderTable(data) {
+    const body = document.getElementById('songBody');
+    if (!body) return;
+
+    // 先にすべてのlocalStorageの中身を1つのオブジェクトにまとめる
+    // （キーが "result_" で始まるものだけ抽出）
+    const allStorage = {};
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith("result_")) {
+            allStorage[key] = JSON.parse(localStorage.getItem(key));
+        }
+    }
+
+    body.innerHTML = data.map(s => {
+        const res = allStorage["result_" + s.name]; // 高速なメモリ参照
+        let rowClass = "";
+        if (res && parseInt(res.b) === 0 && (parseInt(res.p) > 0 || parseInt(res.g) > 0)) {
+            rowClass = "fc-style";
+        }
+        // ...以下同じ
+
+        const safeName = s.name.replace(/'/g, "\\'");
+        
+        // --- return の中の <tr ${bgColor}> を <tr class="${rowClass}"> に変更 ---
+        return `
+            <tr class="${rowClass}">
+                <td class="col-stars">${s.stars}</td>
+                <td class="col-zenryo">${s.zenryo || '-'}</td>
+                <td class="col-name" 
+                    onclick="selectSong('${safeName}', '${s.stars}', ${s.notes || 0}, '${s.zenryo}')">
+                    ${s.name}
+                </td>
+                <td class="col-notes">${s.notes || '-'}</td>
+            </tr>
+        `;
+    }).join('');
+}
+// 保存窓からの通知をリアルタイムで受け取る設定
+window.addEventListener('message', (e) => {
+    if (e.data.type === 'RECORD_SAVED') {
+        // 再描画して色を反映
+        filterData(); 
+    }
+});
+function syncTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+}
+
+// 1. ページ読み込み時に適用
+window.addEventListener('load', syncTheme);
+
+// 2. 他の画面（home.htmlなど）で設定が変わった瞬間に適用
+window.addEventListener('storage', (e) => {
+    if (e.key === 'theme') {
+        syncTheme();
+    }
+});
+// 関数名を sortAndRender から sortData に変更
+function sortData(key) {
+    // 昇順・降順を切り替えるための処理
+    if (currentSortKey === key) {
+        isAsc = !isAsc;
+    } else {
+        isAsc = true;
+        currentSortKey = key;
+    }
+
+    const data = [...songs];
+    
+    data.sort((a, b) => {
+        let valA = a[key] || '';
+        let valB = b[key] || '';
+
+        // 数値比較
+        if (key === 'stars' || key === 'notes') {
+            return isAsc ? (valA - valB) : (valB - valA);
+        }
+        
+        // 全良難易度（zenryoOrder）での比較
+        if (key === 'zenryo') {
+            const orderA = zenryoOrder[valA] || 999;
+            const orderB = zenryoOrder[valB] || 999;
+            return isAsc ? orderA - orderB : orderB - orderA;
+        }
+
+        // 文字列比較
+        return isAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    });
+
+    renderTable(data);
+
+    // ヘッダーの ▲▼ 表示を更新
+    updateSortIcons(key, isAsc);
+}
+
+// アイコン更新用の補助関数
+function updateSortIcons(key, asc) {
+    document.querySelectorAll('th').forEach(th => {
+        th.classList.remove('asc', 'desc');
+        // HTMLの onclick="sortData('stars')" の引数と一致するthを探す
+        if (th.getAttribute('onclick') && th.getAttribute('onclick').includes(key)) {
+            th.classList.add(asc ? 'asc' : 'desc');
+        }
+    });
+}
+
+// 状態保持用の変数を関数の外に置いておく
+let currentSortKey = '';
+let isAsc = true;
+</script>
+</body>
+</html>

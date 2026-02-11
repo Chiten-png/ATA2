@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+<link rel="manifest" href="manifest.json">
+<style>
+    
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap');
+
+        :root {
+            --sidebar-width: 250px;
+            --sidebar-mini-width: 60px; /* 縮小時の幅 */
+            --bg-color: #2c3e50;
+        }
+        body { margin: 0; display: flex; height: 100vh; font-family: sans-serif; overflow: hidden; background: #f4f4f4; }
+        
+        /* サイドバーの基本設定 */
+        nav { 
+            width: var(--sidebar-width); 
+            background: var(--bg-color); 
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            transition: width 0.22s; /* 動きをスムーズに */
+            overflow: hidden;
+            white-space: nowrap; /* 文字が折り返さないように */
+        }
+
+        /* 【重要】サイドバーが縮小された時（miniクラスがついた時）の幅 */
+        nav.mini {
+            width: var(--sidebar-mini-width);
+        }
+
+        /* ロゴ・ハンバーガー部分 */
+        .header-area {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #1a252f;
+            cursor: pointer;
+        }
+        .menu-icon { font-size: 1.5rem; min-width: 30px; text-align: center; }
+        .logo-text { margin-left: 16px; font-weight: bold; font-size: 1.2rem; }
+
+        /* メニュー項目 */
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: #ecf0f1;
+            width: 100%;
+            transition: 0.2s;
+        }
+        .menu-item:hover { background: #34495e; }
+        .menu-item.active { background: #3498db !important; }
+        
+        .item-text { margin-left: 15px; }
+        
+
+
+
+        /* ツール表示エリア */
+        iframe { flex-grow: 1; border: none; }
+        /* --- 通常時の設定 --- */
+.mini-clock {
+    display: none; /* 普段は隠しておく */
+}
+.full-clock {
+    font-size: 1.5rem;
+    color: #3498db;
+    letter-spacing: 2px;
+    text-align: center;
+    display: block;
+}
+/* --- サイドバーが縮小（.mini）した時の魔法 --- */
+
+/* 1. フル表示の時計と日付を消す */
+nav.mini .full-clock,
+nav.mini .date {
+    display: none;
+    
+}
+
+/* 2. ミニ用の時計を出現させる */
+nav.mini .mini-clock {
+    display: block;
+    font-size: 0.9rem; /* 狭い幅に収まるサイズ */
+    color: #3498db;
+    text-align: center;
+}
+#clock, 
+.full-clock, 
+.mini-clock {
+    font-family: 'Orbitron', sans-serif !important;
+}
+/* 3. 余白もキュッと詰める */
+nav.mini .sidebar-status {
+    padding: 10px 0;
+}
+footer.sidebar-status {
+    margin-top: auto; /* これが「一番下へ分裂させる」魔法 */
+    padding: 8px 4px;
+    border-top: 1px solid #34495e;
+    text-align: center;
+}
+        </style>
+</head>
+<body>
+
+<nav id="sidebar">
+    <div class="header-area" onclick="toggleSidebar()">
+        <span class="menu-icon">≡</span>
+        <span class="logo-text">My Portal</span>
+    </div>
+
+    <button class="menu-item" onclick="goHome()">
+        <span class="menu-icon">🏠</span>
+        <span class="item-text">Home</span>
+    </button>
+    
+    <button class="menu-item" onclick="openTool(this, 'tool1.html')">
+        <span class="menu-icon">🔴</span>
+        <span class="item-text">donders</span>
+    </button>
+    <button class="menu-item" onclick="openTool(this, 'Launcher.html')">
+    <span class="menu-icon">🎮</span>
+    <span class="item-text">Game Collection</span>
+    </button>
+    <button class="menu-item" onclick="openTool(this,'tool2.html')">
+        <span class="menu-icon">🏠️</span>
+        <span class="item-text">netroom</span>
+    </button>
+    <button class="menu-item" onclick="openTool(this,'tool3.html')">
+        <span class="menu-icon">🀄</span>
+        <span class="item-text">雀魂</span>
+    </button>
+    
+    
+
+<footer class="sidebar-status">
+    <div id="clock" class="full-clock">00:00:00</div>
+    
+    <div class="mini-clock">00:00</div>
+</footer>
+</nav>
+
+
+<iframe id="main-frame" src="home.html"></iframe>
+
+<script>
+    const sidebar = document.getElementById('sidebar');
+    const frame = document.getElementById('main-frame');
+
+    // サイドバーの開閉を切り替える関数
+    function toggleSidebar() {
+        sidebar.classList.toggle('mini');
+    }
+
+    function openTool(element, url) {
+        document.querySelectorAll('.menu-item').forEach(btn => btn.classList.remove('active'));
+        if(element) element.classList.add('active');
+        frame.src = url;
+    }
+
+    function goHome() {
+    // 1つ目のボタン（Home）を指定して、home.htmlを開く
+    const homeBtn = document.querySelectorAll('.menu-item')[0];
+    openTool(homeBtn, '/home.html');}    
+    
+    function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    
+    // フル表示を更新
+    const full = document.querySelector('.full-clock');
+    if (full) full.textContent = `${h}:${m}:${s}`;
+    
+    // ミニ表示を更新（秒を省いてスッキリ）
+    const mini = document.querySelector('.mini-clock');
+    if (mini) mini.textContent = `${h}:${m}`;
+}
+// 1秒ごとに実行
+setInterval(updateClock, 1000);
+
+// 読み込み時にも一度実行（1秒待たずに表示するため）
+updateClock();
+    
+
+
+
+
+
+
+
+
+    
+</script>
+
+</body>
+</html>

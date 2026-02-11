@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <style>
+    /* --- 1. 定数（全ての画面で共通化） --- */
+    :root {
+        --bg-main: #f8f9fa;
+        --card-bg: #ffffff;
+        --text-main: #333333;
+        --border: #dfe1e5;
+    }
+    [data-theme="dark"] {
+        --bg-main: #121212;
+        --card-bg: #1e1e1e;
+        --text-main: #e0e0e0;
+        --border: #333333;
+    }
+
+    /* --- 2. 全体レイアウト --- */
+    body {
+        background-color: var(--bg-main);
+        margin: 0;
+        transition: background-color 0.3s;
+        overflow: hidden; /* 親画面の余計なスクロールを防ぐ */
+    }
+
+    .container {
+        display: grid;
+        grid-template-columns: 15fr 10fr; /* 左右分割 */
+        grid-template-rows: 1fr 1fr;      /* 右側を上下分割 */
+        gap: 10px;
+        height: 100vh; /* 95vhから100vhに調整して隙間を最適化 */
+        padding: 10px;
+        box-sizing: border-box;
+    }
+
+    /* --- 3. 各エリア（共通設定） --- */
+    .list-area, .random-area, .input-area {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden; /* 角丸からはみ出さないように */
+        transition: background-color 0.3s, border-color 0.3s;
+    }
+
+    /* 左側：リストエリア（上下ぶち抜き） */
+    .list-area {
+        grid-row: 1 / 3;
+    }
+
+    /* 各エリアの中のiframeを綺麗に収める */
+    iframe { 
+        width: 100%; 
+        height: 100%; 
+        border: none; 
+        display: block; /* 下に隙間ができないように */
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <div class="list-area">
+            <iframe src="song_list.html"></iframe>
+        </div>
+
+        <div class="random-area">
+            <iframe src="random_selector.html"></iframe>
+        </div>
+
+        <div class="input-area">
+            <iframe src="score_input.html"></iframe>
+        </div>
+    </div>
+    <script>
+        
+// tool1.html の <script> 内
+window.addEventListener('message', (e) => {
+    const scoreFrame = document.querySelector('iframe[src="score_input.html"]');
+    const listFrame = document.querySelector('iframe[src="song_list.html"]');
+
+    // リストやガチャから「曲選択」が飛んできた時
+    if (e.data.type === 'SET_SONG') {
+        if (scoreFrame) {
+            scoreFrame.contentWindow.postMessage(e.data, '*');
+        }
+    }
+
+    // 保存窓から「保存したよ」という通知が飛んできた時
+    if (e.data.type === 'RECORD_SAVED') {
+        if (listFrame) {
+            listFrame.contentWindow.postMessage(e.data, '*');
+        }
+    }
+});
+function syncTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+}
+
+// ページ読み込み時と、ストレージ変更時に実行
+window.addEventListener('DOMContentLoaded', syncTheme);
+window.addEventListener('storage', (e) => {
+    if (e.key === 'theme') syncTheme();
+});
+    </script>
+</body>
+</html>

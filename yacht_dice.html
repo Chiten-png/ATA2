@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Yacht Dice</title>
+    <style>
+        :root {
+            --bg: #f8f9fa; --text: #333; --accent: #2c3e50; --card: #ffffff; --highlight: #3498db;
+        }
+        html[data-theme="dark"] {
+            --bg: #121212; --text: #e0e0e0; --accent: #3498db; --card: #1e1e1e; --highlight: #f1c40f;
+        }
+
+        body {
+            margin: 0; font-family: sans-serif; background: var(--bg); color: var(--text);
+            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+        }
+
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 20px; background: var(--card); border-bottom: 2px solid var(--accent);
+        }
+
+        .back-btn {
+            background: var(--accent); color: white; border: none; padding: 8px 15px;
+            border-radius: 5px; cursor: pointer; text-decoration: none; font-size: 0.9rem;
+        }
+
+        .game-container {
+            display: flex; flex-grow: 1; padding: 20px; gap: 20px; justify-content: center;
+        }
+
+        /* ダイスエリア */
+        .dice-section {
+            display: flex; flex-direction: column; align-items: center; gap: 20px; width: 300px;
+        }
+        .dice-grid {
+            display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+        }
+        .die {
+            width: 50px; height: 50px; background: var(--card); border: 2px solid var(--text);
+            border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .die.held {
+            background: var(--highlight); color: white; border-color: var(--highlight); transform: translateY(-5px);
+        }
+
+        /* スコア表 */
+        .score-section {
+            background: var(--card); border-radius: 10px; padding: 15px; border: 1px solid var(--accent);
+            overflow-y: auto; width: 250px;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; border-bottom: 1px solid #ddd; text-align: left; }
+        .score-row { cursor: pointer; }
+        .score-row:hover { background: rgba(52, 152, 219, 0.2); }
+        .score-row.fixed { cursor: default; color: var(--highlight); font-weight: bold; pointer-events: none; }
+
+        .roll-btn {
+            padding: 15px 40px; font-size: 1.2rem; background: var(--highlight);
+            color: white; border: none; border-radius: 30px; cursor: pointer;
+        }
+        .roll-btn:disabled { background: #999; }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <a href="../Launcher.html" class="back-btn">◀ Launcherに戻る</a>
+    <div>Roll: <span id="roll-count">0</span> / 3</div>
+</div>
+
+<div class="game-container">
+    <div class="dice-section">
+        <div class="dice-grid" id="dice-grid">
+            <div class="die" onclick="toggleHold(0)">?</div>
+            <div class="die" onclick="toggleHold(1)">?</div>
+            <div class="die" onclick="toggleHold(2)">?</div>
+            <div class="die" onclick="toggleHold(3)">?</div>
+            <div class="die" onclick="toggleHold(4)">?</div>
+        </div>
+        <button class="roll-btn" id="roll-btn" onclick="rollDice()">Roll Dice</button>
+        <div id="status-msg">役を選んでください</div>
+    </div>
+
+    <div class="score-section">
+        <table>
+            <thead><tr><th>役</th><th>得点</th></tr></thead>
+            <tbody id="score-table">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let dice = [1, 1, 1, 1, 1];
+    let held = [false, false, false, false, false];
+    let rolls = 0;
+    let scores = {};
+
+    const categories = [
+        { id: 'ones', name: 'Ones' }, { id: 'twos', name: 'Twos' }, { id: 'threes', name: 'Threes' },
+        { id: 'fours', name: 'Fours' }, { id: 'fives', name: 'Fives' }, { id: 'sixes', name: 'Sixes' },
+        { id: 'choice', name: 'Choice' }, { id: '4ofakind', name: '4 of a Kind' },
+        { id: 'fullhouse', name: 'Full House' }, { id: 's.straight', name: 'S. Straight' },
+        { id: 'l.straight', name: 'L. Straight' }, { id: 'yacht', name: 'Yacht' }
+    ];
+
+    function init() {
+        renderScores();
+        syncTheme();
+    }
+
+    function toggleHold(i) {
+        if (rolls === 0) return;
+        held[i] = !held[i];
+        updateDiceUI();
+    }
+
+    function rollDice() {
+        if (rolls >= 3) return;
+        for (let i = 0; i < 5; i++) {
+            if (!held[i]) dice[i] = Math.floor(Math.random() * 6) + 1;
+        }
+        rolls++;
+        document.getElementById('roll-count').textContent = rolls;
+        if (rolls === 3) document.getElementById('roll-btn').disabled = true;
+        updateDiceUI();
+        renderScores();
+    }
+
+    function updateDiceUI() {
+        const diceDivs = document.querySelectorAll('.die');
+        diceDivs.forEach((div, i) => {
+            div.textContent = dice[i];
+            div.className = held[i] ? 'die held' : 'die';
+        });
+    }
+
+    function calculateScore(catId, currentDice) {
+        const counts = Array(7).fill(0);
+        currentDice.forEach(d => counts[d]++);
+        const sum = currentDice.reduce((a, b) => a + b, 0);
+        const sorted = [...new Set(currentDice)].sort();
+
+        switch(catId) {
+            case 'ones': return counts[1] * 1;
+            case 'twos': return counts[2] * 2;
+            case 'threes': return counts[3] * 3;
+            case 'fours': return counts[4] * 4;
+            case 'fives': return counts[5] * 5;
+            case 'sixes': return counts[6] * 6;
+            case 'choice': return sum;
+            case '4ofakind': return counts.some(c => c >= 4) ? sum : 0;
+            case 'fullhouse': 
+                const has3 = counts.indexOf(3);
+                const has2 = counts.indexOf(2);
+                return (has3 !== -1 && has2 !== -1) ? sum : 0;
+            case 's.straight':
+                const sStr = sorted.join('');
+                return /1234|2345|3456/.test(sStr) ? 15 : 0;
+            case 'l.straight':
+                const lStr = sorted.join('');
+                return /12345|23456/.test(lStr) ? 30 : 0;
+            case 'yacht': return counts.includes(5) ? 50 : 0;
+            default: return 0;
+        }
+    }
+
+    function selectScore(catId) {
+        if (rolls === 0 || scores[catId] !== undefined) return;
+        scores[catId] = calculateScore(catId, dice);
+        resetTurn();
+    }
+
+    function resetTurn() {
+        dice = [1, 1, 1, 1, 1];
+        held = [false, false, false, false, false];
+        rolls = 0;
+        document.getElementById('roll-count').textContent = rolls;
+        document.getElementById('roll-btn').disabled = false;
+        updateDiceUI();
+        renderScores();
+        
+        if (Object.keys(scores).length === categories.length) {
+            alert("Game Over! Total: " + Object.values(scores).reduce((a,b)=>a+b));
+        }
+    }
+
+    function renderScores() {
+        const tbody = document.getElementById('score-table');
+        tbody.innerHTML = '';
+        categories.forEach(cat => {
+            const isFixed = scores[cat.id] !== undefined;
+            const scoreVal = isFixed ? scores[cat.id] : (rolls > 0 ? calculateScore(cat.id, dice) : 0);
+            const tr = document.createElement('tr');
+            tr.className = `score-row ${isFixed ? 'fixed' : ''}`;
+            tr.onclick = () => selectScore(cat.id);
+            tr.innerHTML = `<td>${cat.name}</td><td>${scoreVal}</td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function syncTheme() {
+        const theme = localStorage.getItem('theme');
+        if (theme) document.documentElement.setAttribute('data-theme', theme);
+    }
+    window.addEventListener('storage', syncTheme);
+    init();
+</script>
+
+</body>
+</html>

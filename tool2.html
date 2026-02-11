@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        :root {
+            --bg-main: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --accent: #3498db;
+            --border: #dfe1e5;
+        }
+        [data-theme="dark"] {
+            --bg-main: #121212;
+            --card-bg: #1e1e1e;
+            --text-main: #e0e0e0;
+            --accent: #4fc3f7;
+            --border: #333333;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+
+        /* メイン画面（ネットルーム） */
+        .main-content {
+            width: 100%;
+            height: 100vh;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100vh;
+            border: none;
+        }
+
+       
+    </style>
+</head>
+<body>
+
+   
+    <div class="main-content">
+        <iframe src="https://netroom.oz96.com"></iframe>
+    </div>
+
+    
+
+    <script>
+        
+    // サイドバーの開閉を制御する関数
+    
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.toggle('open');
+        
+        const btn = document.querySelector('.toggle-btn');
+        if(btn) btn.textContent = sidebar.classList.contains('open') ? 'Close' : 'AI Menu';
+    }
+
+
+
+
+
+        // テーマ同期（いつもの）
+        function syncTheme() {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+        window.addEventListener('load', syncTheme);
+        window.addEventListener('storage', syncTheme);
+    </script>
+</body>
+</html>

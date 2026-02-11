@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <style>
+    /* --- 1. 定数（共通化） --- */
+    :root {
+        --bg-main: #f8f9fa;
+        --card-bg: #ffffff;
+        --text-main: #333333;
+        --border: #dfe1e5;
+        --accent-gacha: #34495e;
+        --accent-gacha-hover: #2c3e50;
+        --song-color: #ff4d4d; /* 曲名の赤色は基本そのまま */
+    }
+    [data-theme="dark"] {
+        --bg-main: #121212;
+        --card-bg: #1e1e1e;
+        --text-main: #e0e0e0;
+        --border: #333333;
+        --accent-gacha: #3498db; /* ダークモードでは少し明るい青に */
+        --accent-gacha-hover: #2980b9;
+        --song-color: #ff6b6b; /* ダークモードで見やすい明るい赤 */
+    }
+
+    /* --- 2. 全体レイアウト --- */
+    body { 
+        font-family: sans-serif; 
+        background-color: var(--bg-main); 
+        color: var(--text-main); 
+        margin: 0; 
+        padding: 10px; 
+        transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* --- 3. 曲名表示エリア --- */
+    .song-display {
+        font-size: 1.3rem; 
+        font-weight: bold; 
+        color: var(--song-color); 
+        margin: 10px 0;
+        min-height: 1.6em; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+        border: 2px dashed var(--border); /* 枠線を変数に */
+        border-radius: 8px;
+        background-color: var(--card-bg); /* ほんのりカード色に */
+        text-align: center;
+        padding: 5px;
+    }
+
+    /* --- 4. コントロールエリア --- */
+    .controls { 
+        display: flex; 
+        gap: 5px; 
+        margin-bottom: 10px; 
+    }
+
+    select { 
+        flex: 1; 
+        padding: 8px; 
+        border-radius: 4px; 
+        border: 1px solid var(--border); 
+        font-size: 0.8rem; 
+        background-color: var(--card-bg); 
+        color: var(--text-main);
+        outline: none;
+    }
+
+    button { 
+        width: 100%; 
+        padding: 12px; 
+        font-size: 1rem; 
+        cursor: pointer; 
+        background-color: var(--accent-gacha); 
+        color: white; 
+        border: none; 
+        border-radius: 5px; 
+        font-weight: bold;
+        transition: background 0.2s, transform 0.1s;
+    }
+
+    button:hover { 
+        background-color: var(--accent-gacha-hover); 
+    }
+
+    button:active {
+        transform: scale(0.98); /* 押した感を出す */
+    }
+</style>
+</head>
+<body>
+
+    <div class="controls">
+        <select id="star-filter">
+            <option value="all">★すべて</option>
+            <option value="10">★10のみ</option>
+            <option value="9">★9以上</option>
+        </select>
+        
+        <select id="diff-filter">
+            <option value="all">難易度帯すべて</option>
+            <option value="D">地力D以上</option>
+            <option value="B">地力B以上</option>
+            <option value="A">地力A以上</option>
+            <option value="S">地力S以上</option>
+            <option value="SS">SSのみ</option>
+        </select>
+    </div>
+
+    <div id="result" class="song-display">???</div>
+    <button onclick="spinGacha()">ガチャを回す</button>
+<script src="master_songs.js"></script>
+    <script>
+        
+        // 地力ランクの順序定義（フィルター用）
+        const rankList = ["SS", "地力S+", "個人差S+", "地力S", "個人差S", "地力A+", "個人差A+", "地力A", "個人差A", "地力B", "個人差B", "地力C", "個人差C", "地力D", "個人差D", "地力E", "個人差E", "地力F"];
+
+        function spinGacha() {
+    // 1. JSファイルから読み込んだデータ（大文字小文字に注意！）
+    let songs = master_songs_data; 
+
+    // 2. セレクターの値を取得
+    const starVal = document.getElementById('star-filter').value;
+    const diffVal = document.getElementById('diff-filter').value;
+    
+
+    // 3. フィルタリング開始
+    // ★難易度で絞り込み
+    if (starVal !== "all") {
+        songs = songs.filter(s => s.stars === starVal);
+    }
+
+    // 地力ランク（D以上、B以上など）で絞り込み
+    if (diffVal !== "all") {
+        songs = songs.filter(s => {
+            if (!s.zenryo) return false;
+            // rankListのインデックスを使って、指定ランク「以上」を判定
+            const index = rankList.findIndex(r => s.zenryo.includes(r));
+            const targetIndex = rankList.findIndex(r => r.includes(diffVal));
+            return index !== -1 && index <= targetIndex;
+        });
+    }
+
+    // 4. 結果の表示
+    if (songs.length === 0) {
+        document.getElementById('result').textContent = "該当なし";
+        return;
+    }
+
+    const picked = songs[Math.floor(Math.random() * songs.length)];
+    document.getElementById('result').textContent = picked.name;
+    
+    // おまけ：コンソールに詳細を出しておくとデバッグが楽
+    console.log(`抽選対象: ${songs.length}件中、1件当選: ${picked.name}`);
+}
+        function syncTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+}
+
+// 1. ページ読み込み時に適用
+window.addEventListener('load', syncTheme);
+
+// 2. 他の画面（home.htmlなど）で設定が変わった瞬間に適用
+window.addEventListener('storage', (e) => {
+    if (e.key === 'theme') {
+        syncTheme();
+    }
+});
+    </script>
+</body>
+</html>

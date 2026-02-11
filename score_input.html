@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <style>
+    /* --- 1. 定数（共通化） --- */
+    :root {
+        --bg-main: #f8f9fa;
+        --card-bg: #ffffff;
+        --text-main: #333333;
+        --border: #dfe1e5;
+        --input-bg: #ffffff;
+        --gauge-empty: #e0e0e0;
+        --accent-save: #27ae60;
+        --accent-save-hover: #219150;
+    }
+    [data-theme="dark"] {
+        --bg-main: #121212;
+        --card-bg: #1e1e1e;
+        --text-main: #e0e0e0;
+        --border: #333333;
+        --input-bg: #2d2d2d;
+        --gauge-empty: #333333;
+        --accent-save: #2ecc71;
+        --accent-save-hover: #27ae60;
+    }
+
+    /* --- 2. 全体レイアウト --- */
+    body { 
+        font-family: sans-serif; 
+        background-color: var(--bg-main); 
+        color: var(--text-main); 
+        margin: 0; 
+        padding: 10px; /* 少し余白を持たせると綺麗です */
+        transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* --- 3. ゲージ --- */
+    .gauge-container {
+        width: 100%; 
+        height: 20px; 
+        background-color: var(--gauge-empty); 
+        border-radius: 10px; 
+        overflow: hidden; 
+        margin: 10px 0; 
+        border: 1px solid var(--border);
+    }
+    #gauge-bar {
+        width: 0%; 
+        height: 100%; 
+        background: #4fc3f7; /* ゲージの色（水色） */
+        transition: width 0.3s ease, background-color 0.3s;
+        box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    /* --- 4. 入力エリア --- */
+    .inputs { 
+        display: flex; 
+        gap: 8px; 
+        margin-bottom: 12px; 
+    }
+    input { 
+        width: 33%; 
+        padding: 10px; 
+        border: 1px solid var(--border); 
+        border-radius: 5px; 
+        font-size: 1rem; 
+        text-align: center;
+        background-color: var(--input-bg);
+        color: var(--text-main);
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    input:focus {
+        border-color: #4fc3f7;
+    }
+
+    /* --- 5. 保存ボタン --- */
+    button { 
+        width: 100%; 
+        padding: 12px; 
+        background-color: var(--accent-save); 
+        color: white; 
+        border: none; 
+        border-radius: 5px; 
+        cursor: pointer; 
+        font-weight: bold;
+        transition: background 0.2s;
+    }
+    button:hover { 
+        background-color: var(--accent-save-hover); 
+    }
+    
+    #status-text { 
+        font-size: 0.85rem; 
+        font-weight: bold; 
+        text-align: center; 
+        margin-top: 5px; 
+        color: var(--text-main);
+    }
+</style>
+</head>
+<body>
+
+    <div id="target-song" class="label">曲を選択してください</div>
+    
+    <div class="gauge-container">
+        <div id="gauge-bar"></div>
+    </div>
+    <div id="status-text">0.00% (未達)</div>
+
+    <div class="inputs">
+        <input type="number" id="p" placeholder="良" oninput="calculate()">
+        <input type="number" id="g" placeholder="可" oninput="calculate()">
+        <input type="number" id="b" placeholder="不可" oninput="calculate()">
+    </div>
+
+    <button onclick="saveRecord()">記録を保存する</button>
+
+    <script>
+        let currentData = { name: "", notes: 0, stars: "" };
+
+        // score_input.html 内
+window.addEventListener('message', (e) => {
+    if (e.data.type === 'SET_SONG') {
+        currentData.name = e.data.name;
+        currentData.notes = e.data.notes || 0;
+        currentData.stars = e.data.stars || "";
+
+        document.getElementById('target-song').textContent = "対象: " + currentData.name;
+        
+        // ★ここが重要：曲名が決まった直後にLocalStorageを見に行く
+        loadSavedData(currentData.name);
+    }
+});
+
+        // score_input.html の calculate 関数内を以下のように更新
+
+function calculate() {
+    if (!currentData.notes || currentData.notes === 0) return;
+
+    // 1. 各点数の計算
+    const pScore = Math.ceil(10000 / currentData.notes);
+    const gScore = Math.floor(pScore * 0.5);
+    const bScore = pScore * 2;
+
+    // 2. 入力値の取得
+    const pInput = document.getElementById('p').value;
+    const gInput = document.getElementById('g').value;
+    const bInput = document.getElementById('b').value;
+
+    const pCount = parseInt(pInput) || 0;
+    const gCount = parseInt(gInput) || 0;
+    const bCount = parseInt(bInput) || 0;
+
+    // 3. 合計点の算出
+    let total = (pCount * pScore) + (gCount * gScore) - (bCount * bScore);
+    total = Math.max(0, Math.min(10000, total));
+
+    
+    // 5. 表示の更新
+    updateUI(total);
+}
+
+        function updateUI(point) {
+            const percent = (point / 100).toFixed(2);
+            const bar = document.getElementById('gauge-bar');
+            const text = document.getElementById('status-text');
+
+            bar.style.width = percent + "%";
+
+            if (point >= 10000) {
+                text.textContent = percent + "% (入魂！)";
+                text.style.color = "#d35400";
+                bar.style.backgroundColor = "#ff4d4d"; // 赤
+            } else if (point >= 8000) {
+                text.textContent = percent + "% (ノルマクリア)";
+                text.style.color = "#27ae60";
+                bar.style.backgroundColor = "#ffce54"; // 黄
+            } else {
+                text.textContent = percent + "% (未達)";
+                text.style.color = "#333";
+                bar.style.backgroundColor = "#4fc3f7"; // 青
+            }
+        }
+
+        // score_input.html の saveRecord 関数を書き換え
+function saveRecord() {
+    if (!currentData.name) return alert("曲が選択されていません");
+    
+    const p = document.getElementById('p').value;
+    const g = document.getElementById('g').value;
+    const b = document.getElementById('b').value;
+
+    const record = { p, g, b };
+    localStorage.setItem("result_" + currentData.name, JSON.stringify(record));
+
+    // 親(tool1)へ「リストを更新して」と通知を送る
+    window.parent.postMessage({ 
+        type: 'RECORD_SAVED', 
+        name: currentData.name,
+        isFullCombo: (parseInt(b) === 0 && (parseInt(p) > 0 || parseInt(g) > 0))
+    }, '*');
+
+    alert("保存しました！");
+}
+
+        function loadSavedData(name) {
+            const saved = localStorage.getItem("result_" + name);
+            if (saved) {
+                const data = JSON.parse(saved);
+                document.getElementById('p').value = data.p || "";
+                document.getElementById('g').value = data.g || "";
+                document.getElementById('b').value = data.b || "";
+                calculate(); // 呼び出し後に計算実行
+            } else {
+                document.getElementById('p').value = "";
+                document.getElementById('g').value = "";
+                document.getElementById('b').value = "";
+                updateUI(0);
+            }
+        }
+        function syncTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+}
+
+// 1. ページ読み込み時に適用
+window.addEventListener('load', syncTheme);
+
+// 2. 他の画面（home.htmlなど）で設定が変わった瞬間に適用
+window.addEventListener('storage', (e) => {
+    if (e.key === 'theme') {
+        syncTheme();
+    }
+});
+    </script>
+</body>
+</html>
